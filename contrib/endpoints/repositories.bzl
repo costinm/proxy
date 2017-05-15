@@ -163,14 +163,25 @@ def grpc_repositories(bind=True):
 
     native.git_repository(
         name = "grpc_git",
-        commit = "bb3edafea245a9780cc4c10f0b58da21e8193f38", # v1.1.1
+        commit = "c80d3321d0f77bef8cfff8b32490a07c1e90a5ad", # v1.3.2
         remote = "https://github.com/grpc/grpc.git",
+    )
+
+    native.new_local_repository(
+        name = "submodule_cares",
+        path = "third_party/cares",
+        build_file = "third_party/cares/cares.BUILD",
     )
 
     if bind:
         native.bind(
             name = "gpr",
             actual = "@grpc_git//:gpr",
+        )
+
+        native.bind(
+            name = "cares",
+            actual = "@submodule_cares//:ares",
         )
 
         native.bind(
