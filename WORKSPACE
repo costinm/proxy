@@ -19,7 +19,9 @@ load(
     "//:repositories.bzl",
     "boringssl_repositories",
     "protobuf_repositories",
+    "googleapis_repositories",
     "googletest_repositories",
+    "grpc_repositories",
     "transcoding_repositories",
 )
 
@@ -27,17 +29,18 @@ boringssl_repositories()
 
 protobuf_repositories()
 
+googleapis_repositories()
+
 googletest_repositories()
+
+grpc_repositories(envoy_deps=True)
 
 transcoding_repositories()
 
 load(
     "//contrib/endpoints:repositories.bzl",
-    "grpc_repositories",
     "servicecontrol_client_repositories",
 )
-
-grpc_repositories()
 
 servicecontrol_client_repositories()
 
@@ -68,7 +71,7 @@ bind(
 git_repository(
     name = "envoy",
     remote = "https://github.com/lyft/envoy.git",
-    commit = "14e1f10e3c4f17a9d4579f6711d0c03b7d2647c4",
+    commit = "090050f9c7c31b014224afe80fe77b422fcf0990",
 )
 
 load("@envoy//bazel:repositories.bzl", "envoy_dependencies")
