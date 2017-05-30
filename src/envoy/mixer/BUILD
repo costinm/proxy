@@ -17,7 +17,7 @@
 
 load("@bazel_tools//tools/build_defs/pkg:pkg.bzl", "pkg_tar")
 load("//src/envoy/mixer:proxy_docker.bzl", "proxy_docker_build")
-load("@protobuf_git//:protobuf.bzl", "cc_proto_library")
+load("@protobuf_bzl//:protobuf.bzl", "cc_proto_library")
 
 cc_proto_library(
     name = "string_map_proto",
@@ -45,6 +45,9 @@ cc_library(
         "//external:mixer_client_lib",
         "@envoy//source/exe:envoy_common_lib",
     ],
+    includes = [
+         "../../..",
+    ],
     alwayslink = 1,
 )
 
@@ -55,7 +58,7 @@ cc_binary(
     visibility = [":__subpackages__"],
     deps = [
         ":filter_lib",
-        "@envoy//source/exe:envoy_main_lib",
+	"@envoy//source/exe:envoy_main_lib",
     ],
 )
 
