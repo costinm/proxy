@@ -264,7 +264,7 @@ class Instance : public Http::StreamDecoderFilter,
     if (!status.ok() && state_ != Responded) {
       state_ = Responded;
       check_status_code_ = HttpCode(status.error_code());
-      Utility::sendLocalReply(*decoder_callbacks_, Code(check_status_code_),
+      Utility::sendLocalReply(*decoder_callbacks_, false,  Code(check_status_code_),
                               status.ToString());
       return;
     }

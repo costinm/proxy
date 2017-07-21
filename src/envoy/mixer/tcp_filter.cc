@@ -133,6 +133,10 @@ class TcpInstance : public Network::Filter,
                                     : Network::FilterStatus::Continue;
   }
 
+  void onAboveWriteBufferHighWatermark() {}
+
+  void onBelowWriteBufferLowWatermark() {}
+
   void completeCheck(const Status& status) {
     log().debug("Called TcpInstance completeCheck: {}", status.ToString());
     if (state_ == State::Closed) {
