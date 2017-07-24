@@ -60,7 +60,7 @@ cc_binary(
         "-luuid",
     ],
     linkstatic = 1,
-    visibility = [":__subpackages__"],
+    visibility = ["//visibility:public"],
     deps = [
         ":filter_lib",
         "@envoy//source/exe:envoy_main_entry_lib",
