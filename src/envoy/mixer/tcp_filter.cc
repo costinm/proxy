@@ -157,7 +157,7 @@ class TcpInstance : public Network::Filter,
   }
 
   // Network::ConnectionCallbacks
-  void onEvent(uint32_t events) override {
+  void onEvent(Network::ConnectionEvent events) override {
     if (filter_callbacks_->upstreamHost()) {
       log().debug("Called TcpInstance onEvent: {} upstream {}", events,
                   filter_callbacks_->upstreamHost()->address()->asString());
@@ -165,8 +165,8 @@ class TcpInstance : public Network::Filter,
       log().debug("Called TcpInstance onEvent: {}", events);
     }
 
-    if (events & Network::ConnectionEvent::RemoteClose ||
-        events & Network::ConnectionEvent::LocalClose) {
+    if (events == Network::ConnectionEvent::RemoteClose ||
+        events == Network::ConnectionEvent::LocalClose) {
       if (state_ != State::Closed && request_data_) {
         mixer_control_->ReportTcp(request_data_, request_bytes_,
                                   response_bytes_, check_status_code_,

@@ -188,7 +188,7 @@ class Instance : public Http::StreamDecoderFilter,
     Log().debug("Called Mixer::Instance : {}", __func__);
 
     if (!config_->forward_attributes().empty() && !forward_disabled()) {
-      headers.addStatic(Utils::kIstioAttributeHeader,
+      headers.addReference(Utils::kIstioAttributeHeader,
                         config_->forward_attributes());
     }
 

@@ -46,7 +46,7 @@ inline void CopyHeaderEntry(const HeaderEntry* entry,
                             Http::HeaderMap& headers) {
   if (entry) {
     std::string val(entry->value().c_str(), entry->value().size());
-    headers.addStaticKey(key, val);
+    headers.addReferenceKey(key, val);
   }
 }
 
