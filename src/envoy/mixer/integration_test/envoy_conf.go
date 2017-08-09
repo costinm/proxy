@@ -26,6 +26,7 @@ const (
 	// Default is using one in this folder.
 	ServerProxyPort = 29090
 	ClientProxyPort = 27070
+	TcpProxyPort    = 26060
 	MixerPort       = 29091
 	BackendPort     = 28080
 	AdminPort       = 29001
@@ -34,6 +35,7 @@ const (
 type ConfParam struct {
 	ClientPort   int
 	ServerPort   int
+	TcpProxyPort int
 	AdminPort    int
 	MixerServer  string
 	Backend      string
@@ -58,8 +60,7 @@ const quotaConfig = `
 
 // A quota config with cache
 const quotaCacheConfig = `
-                  "quota_name": "RequestCount",
-                  "quota_cache": "on"
+                  "quota_name": "RequestCount"
 `
 
 // A config with check cache keys
@@ -69,6 +70,11 @@ const checkCacheConfig = `
                       "request.path",
                       "origin.user"
                   ]
+`
+
+// A config with network fail close policy
+const networkFailClose = `
+                  "network_fail_policy": "close"
 `
 
 // The default client proxy mixer config
@@ -122,7 +128,6 @@ const envoyConfTempl = `
                 "type": "decoder",
                 "name": "mixer",
                 "config": {
-                  "mixer_server": "{{.MixerServer}}",
 {{.ServerConfig}}
                 }
               },
@@ -171,7 +176,6 @@ const envoyConfTempl = `
                 "type": "decoder",
                 "name": "mixer",
                 "config": {
-                   "mixer_server": "{{.MixerServer}}",
 {{.ClientConfig}}
                 }
               },
@@ -181,6 +185,33 @@ const envoyConfTempl = `
                 "config": {}
               }
             ]
+          }
+        }
+      ]
+    },
+    {
+      "address": "tcp://0.0.0.0:{{.TcpProxyPort}}",
+      "bind_to_port": true,
+      "filters": [
+        {
+          "type": "both",
+          "name": "mixer",
+          "config": {
+{{.ServerConfig}}
+          }
+        },
+        {
+          "type": "read",
+          "name": "tcp_proxy",
+          "config": {
+            "stat_prefix": "tcp",
+            "route_config": {
+              "routes": [
+                {
+                  "cluster": "service1"
+                }
+              ]
+            }
           }
         }
       ]
@@ -213,6 +244,24 @@ const envoyConfTempl = `
             "url": "tcp://localhost:{{.ServerPort}}"
           }
         ]
+      },
+      {
+        "name": "mixer_server",
+        "connect_timeout_ms": 5000,
+        "type": "strict_dns",
+	"circuit_breakers": {
+           "default": {
+	      "max_pending_requests": 10000,
+	      "max_requests": 10000
+            }
+	},
+        "lb_type": "round_robin",
+        "features": "http2",
+        "hosts": [
+          {
+            "url": "tcp://{{.MixerServer}}"
+          }
+        ]
       }
     ]
   }
@@ -237,6 +286,7 @@ func getConf() ConfParam {
 	return ConfParam{
 		ClientPort:   ClientProxyPort,
 		ServerPort:   ServerProxyPort,
+		TcpProxyPort: TcpProxyPort,
 		AdminPort:    AdminPort,
 		MixerServer:  fmt.Sprintf("localhost:%d", MixerPort),
 		Backend:      fmt.Sprintf("localhost:%d", BackendPort),

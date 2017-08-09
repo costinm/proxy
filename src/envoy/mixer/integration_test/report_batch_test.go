@@ -17,40 +17,10 @@ package test
 import (
 	"fmt"
 	"testing"
-
-	rpc "github.com/googleapis/googleapis/google/rpc"
 )
 
-const (
-	mixerAuthFailMessage = "Unauthenticated by mixer."
-)
-
-// Check attributes from a fail GET request from mixer
-const checkAttributesMixerFail = `
-{
-  "request.host": "localhost:27070",
-  "request.path": "/echo",
-  "request.time": "*",
-  "request.useragent": "Go-http-client/1.1",
-  "request.method": "GET",
-  "request.scheme": "http",
-  "source.uid": "POD11",
-  "source.namespace": "XYZ11",
-  "target.uid": "POD222",
-  "target.namespace": "XYZ222",
-  "request.headers": {
-     ":method": "GET",
-     ":path": "/echo",
-     ":authority": "localhost:27070",
-     "x-forwarded-proto": "http",
-     "x-istio-attributes": "-",
-     "x-request-id": "*"
-  }
-}
-`
-
-// Report attributes from a fail GET request from mixer
-const reportAttributesMixerFail = `
+// Report attributes from a good GET request
+const reportAttributesOkGet = `
 {
   "request.host": "localhost:27070",
   "request.path": "/echo",
@@ -72,56 +42,92 @@ const reportAttributesMixerFail = `
   },
   "request.size": 0,
   "response.time": "*",
-  "response.size": 41,
+  "response.size": 0,
   "response.duration": "*",
-  "response.code": 401,
-  "response.headers": {
-     "date": "*",
-     "content-type": "text/plain",
-     "content-length": "41",
-     ":status": "401",
-     "server": "envoy"
-  }
-}
-`
-
-// Report attributes from a fail GET request from backend
-const reportAttributesBackendFail = `
-{
-  "request.host": "localhost:27070",
-  "request.path": "/echo",
-  "request.time": "*",
-  "request.useragent": "Go-http-client/1.1",
-  "request.method": "GET",
-  "request.scheme": "http",
-  "source.uid": "POD11",
-  "source.namespace": "XYZ11",
-  "target.uid": "POD222",
-  "target.namespace": "XYZ222",
-  "request.headers": {
-     ":method": "GET",
-     ":path": "/echo",
-     ":authority": "localhost:27070",
-     "x-forwarded-proto": "http",
-     "x-istio-attributes": "-",
-     "x-request-id": "*"
-  },
-  "request.size": 0,
-  "response.time": "*",
-  "response.size": 25,
-  "response.duration": "*",
-  "response.code": 400,
+  "response.code": 200,
   "response.headers": {
      "date": "*",
      "content-type": "text/plain; charset=utf-8",
-     "content-length": "25",
-     ":status": "400",
+     "content-length": "0",
+     ":status": "200",
      "server": "envoy"
   }
 }
 `
 
-func TestFailedRequest(t *testing.T) {
+// Report attributes from a good POST request
+const reportAttributesOkPost1 = `
+{
+  "request.host": "localhost:27070",
+  "request.path": "/echo",
+  "request.time": "*",
+  "request.useragent": "Go-http-client/1.1",
+  "request.method": "POST",
+  "request.scheme": "http",
+  "source.uid": "POD11",
+  "source.namespace": "XYZ11",
+  "target.uid": "POD222",
+  "target.namespace": "XYZ222",
+  "request.headers": {
+     ":method": "POST",
+     ":path": "/echo",
+     ":authority": "localhost:27070",
+     "x-forwarded-proto": "http",
+     "x-istio-attributes": "-",
+     "x-request-id": "*"
+  },
+  "request.size": 12,
+  "response.time": "*",
+  "response.size": 12,
+  "response.duration": "*",
+  "response.code": 200,
+  "response.headers": {
+     "date": "*",
+     "content-type": "text/plain",
+     "content-length": "12",
+     ":status": "200",
+     "server": "envoy"
+  }
+}
+`
+
+// Report attributes from a good POST request
+const reportAttributesOkPost2 = `
+{
+  "request.host": "localhost:27070",
+  "request.path": "/echo",
+  "request.time": "*",
+  "request.useragent": "Go-http-client/1.1",
+  "request.method": "POST",
+  "request.scheme": "http",
+  "source.uid": "POD11",
+  "source.namespace": "XYZ11",
+  "target.uid": "POD222",
+  "target.namespace": "XYZ222",
+  "request.headers": {
+     ":method": "POST",
+     ":path": "/echo",
+     ":authority": "localhost:27070",
+     "x-forwarded-proto": "http",
+     "x-istio-attributes": "-",
+     "x-request-id": "*"
+  },
+  "request.size": 18,
+  "response.time": "*",
+  "response.size": 18,
+  "response.duration": "*",
+  "response.code": 200,
+  "response.headers": {
+     "date": "*",
+     "content-type": "text/plain",
+     "content-length": "18",
+     ":status": "200",
+     "server": "envoy"
+  }
+}
+`
+
+func TestReportBatch(t *testing.T) {
 	s := &TestSetup{
 		t:    t,
 		conf: basicConfig,
@@ -133,41 +139,23 @@ func TestFailedRequest(t *testing.T) {
 
 	url := fmt.Sprintf("http://localhost:%d/echo", ClientProxyPort)
 
-	tag := "MixerFail"
-	s.mixer.check.r_status = rpc.Status{
-		Code:    int32(rpc.UNAUTHENTICATED),
-		Message: mixerAuthFailMessage,
-	}
-	code, resp_body, err := HTTPGet(url)
-	// Make sure to restore r_status for next request.
-	s.mixer.check.r_status = rpc.Status{}
-	if err != nil {
+	// Issues a GET echo request with 0 size body
+	tag := "OKGet"
+	if _, _, err := HTTPGet(url); err != nil {
 		t.Errorf("Failed in request %s: %v", tag, err)
 	}
-	if code != 401 {
-		t.Errorf("Status code 401 is expected, got %d.", code)
-	}
-	if resp_body != "UNAUTHENTICATED:"+mixerAuthFailMessage {
-		t.Errorf("Error response body is not expected, got: '%s'.", resp_body)
-	}
-	s.VerifyCheck(tag, checkAttributesMixerFail)
-	s.VerifyReport(tag, reportAttributesMixerFail)
-
-	// Issues a failed request caused by backend
-	tag = "BackendFail"
-	headers := map[string]string{}
-	headers[FailHeader] = "Yes"
-	code, resp_body, err = HTTPGetWithHeaders(url, headers)
-	if err != nil {
+	// Issues a POST request.
+	tag = "OKPost1"
+	if _, _, err := HTTPPost(url, "text/plain", "Hello World!"); err != nil {
 		t.Errorf("Failed in request %s: %v", tag, err)
 	}
-	if code != 400 {
-		t.Errorf("Status code 400 is expected, got %d.", code)
+	// Issues a POST request again.
+	tag = "OKPost2"
+	if _, _, err := HTTPPost(url, "text/plain", "Hello World Again!"); err != nil {
+		t.Errorf("Failed in request %s: %v", tag, err)
 	}
-	if resp_body != FailBody {
-		t.Errorf("Error response body is not expected, got '%s'.", resp_body)
-	}
-	// Same Check attributes as the first one.
-	s.VerifyCheck(tag, checkAttributesMixerFail)
-	s.VerifyReport(tag, reportAttributesBackendFail)
+	tag = "Batch"
+	s.VerifyReport(tag, reportAttributesOkGet)
+	s.VerifyReport(tag, reportAttributesOkPost1)
+	s.VerifyReport(tag, reportAttributesOkPost2)
 }

@@ -16,44 +16,64 @@
 #
 
 load("@bazel_tools//tools/build_defs/pkg:pkg.bzl", "pkg_tar")
-load("//src/envoy/mixer:proxy_docker.bzl", "proxy_docker_build")
-load("@protobuf_git//:protobuf.bzl", "cc_proto_library")
+load("@protobuf_bzl//:protobuf.bzl", "cc_proto_library")
+load(
+    "@envoy//bazel:envoy_build_system.bzl",
+    "envoy_proto_library",
+    "envoy_cc_library",
+    "envoy_cc_binary",
+    "envoy_linkopts",
+)
 
 cc_proto_library(
     name = "string_map_proto",
     srcs = ["string_map.proto"],
     default_runtime = "//external:protobuf",
+    linkstatic = 1,
     protoc = "//external:protoc",
     visibility = ["//visibility:public"],
 )
 
+# This is a dummy cc_library to provide linkopts to envoy_cc_library
 cc_library(
+    name = "uuid",
+    linkopts = ["-luuid"],
+    linkstatic = 1,
+)
+
+envoy_cc_library(
     name = "filter_lib",
     srcs = [
         "config.cc",
         "config.h",
-        "http_control.cc",
-        "http_control.h",
+        "grpc_transport.cc",
+        "grpc_transport.h",
         "http_filter.cc",
+        "mixer_control.cc",
+        "mixer_control.h",
+        "tcp_filter.cc",
+        "thread_dispatcher.cc",
+        "thread_dispatcher.h",
         "utils.cc",
         "utils.h",
     ],
+    repository = "@envoy",
     deps = [
         ":string_map_proto",
+        ":uuid",
         "//external:mixer_client_lib",
+        "@envoy//source/common/grpc:rpc_channel_lib",
         "@envoy//source/exe:envoy_common_lib",
     ],
-    alwayslink = 1,
 )
 
-cc_binary(
+envoy_cc_binary(
     name = "envoy",
-    linkopts = ["-lrt"],
-    linkstatic = 1,
-    visibility = [":__subpackages__"],
+    repository = "@envoy",
+    visibility = ["//visibility:public"],
     deps = [
         ":filter_lib",
-        "@envoy//source/exe:envoy_main_lib",
+        "@envoy//source/exe:envoy_main_entry_lib",
     ],
 )
 
@@ -80,35 +100,4 @@ pkg_tar(
     mode = "0666",
     package_dir = "/etc/opt/proxy",
     tags = ["manual"],
-)
-
-proxy_docker_build(
-    entrypoint = [
-        "/usr/local/bin/start_envoy",
-        "-e",
-        "/usr/local/bin/envoy",
-        "-c",
-        "/etc/opt/proxy/envoy.conf",
-        "-t",
-        "/etc/opt/proxy/envoy.conf.template",
-    ],
-    images = [
-        {
-            "name": "envoy_image",
-            "base": "@docker_ubuntu//:xenial",
-        },
-        {
-            "name": "envoy_image_debug",
-            "base": "@ubuntu_xenial_debug//file",
-        },
-    ],
-    ports = ["9090"],
-    repository = "istio",
-    tags = ["manual"],
-    tars = [
-        ":config_tar",
-        ":envoy_tar",
-        ":start_envoy_tar",
-    ],
-    visibility = ["//visibility:public"],
 )

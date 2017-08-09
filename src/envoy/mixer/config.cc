@@ -22,9 +22,6 @@ namespace Http {
 namespace Mixer {
 namespace {
 
-// The Json object name for mixer-server.
-const std::string kMixerServer("mixer_server");
-
 // The Json object name for static attributes.
 const std::string kMixerAttributes("mixer_attributes");
 
@@ -35,11 +32,9 @@ const std::string kForwardAttributes("forward_attributes");
 // The Json object name for quota name and amount.
 const std::string kQuotaName("quota_name");
 const std::string kQuotaAmount("quota_amount");
-const std::string kQuotaCache("quota_cache");
 
 // The Json object name for check cache keys.
 const std::string kCheckCacheKeys("check_cache_keys");
-const std::string kCheckCacheExpiration("check_cache_expiration_in_seconds");
 
 const std::string kNetworkFailPolicy("network_fail_policy");
 
@@ -72,19 +67,15 @@ void ReadStringVector(const Json::Object& json, const std::string& name,
 }  // namespace
 
 void MixerConfig::Load(const Json::Object& json) {
-  ReadString(json, kMixerServer, &mixer_server);
-
   ReadStringMap(json, kMixerAttributes, &mixer_attributes);
   ReadStringMap(json, kForwardAttributes, &forward_attributes);
 
   ReadString(json, kQuotaName, &quota_name);
   ReadString(json, kQuotaAmount, &quota_amount);
-  ReadString(json, kQuotaCache, &quota_cache);
 
   ReadString(json, kNetworkFailPolicy, &network_fail_policy);
 
   ReadStringVector(json, kCheckCacheKeys, &check_cache_keys);
-  ReadString(json, kCheckCacheExpiration, &check_cache_expiration);
 }
 
 void MixerConfig::ExtractQuotaAttributes(Attributes* attr) const {

@@ -12,7 +12,7 @@ This Proxy will use Envoy and talk to Mixer server.
   
 ## Build Envoy proxy
 
-* Build target envoy:
+* Follow https://github.com/lyft/envoy/blob/master/bazel/README.md to set up environment, and build target envoy:
 
 ```
   bazel build //src/envoy/mixer:envoy
@@ -23,12 +23,13 @@ This Proxy will use Envoy and talk to Mixer server.
 * Start mixer server. In mixer folder run:
 
 ```
-  bazel-bin/cmd/server/mixs server
-    --globalConfigFile testdata/globalconfig.yml
-    --serviceConfigFile testdata/serviceconfig.yml  --logtostderr
+  bazel-bin/cmd/server/mixs server \
+    --configStoreURL=fs://$(pwd)/testdata/configroot \
+    --alsologtostderr
 ```
   
-  The server will run at port 9091
+  The server will run at port 9091.
+  In order to run Mixer locally, you also need to edit `testdata/configroot/scopes/global/subjects/global/rules.yml` as described in its comments.
 
 * Start backend Echo server.
 
@@ -52,6 +53,35 @@ This Proxy will use Envoy and talk to Mixer server.
   curl http://localhost:7070/echo -d "hello world"
 ```
 
+## How to configurate Mixer server
+
+In Envoy config, Mixer server has to be one of "clusters" under "cluster_manager".
+For examples:
+```
+ "cluster_manager": {
+    "clusters": [
+     ...,
+     {
+        "name": "mixer_server",
+        "connect_timeout_ms": 5000,
+        "type": "strict_dns",
+        "circuit_breakers": {
+           "default": {
+              "max_pending_requests": 10000,
+              "max_requests": 10000
+            }
+        },
+        "lb_type": "round_robin",
+        "features": "http2",
+        "hosts": [
+          {
+            "url": "tcp://${MIXER_SERVER}"
+          }
+        ]
+     }
+```
+Its name has to be "mixer_server".
+
 ## How to configurate HTTP Mixer filters
 
 This filter will intercept all HTTP requests and call Mixer. Here is its config:
@@ -61,7 +91,6 @@ This filter will intercept all HTTP requests and call Mixer. Here is its config:
       "type": "decoder",
       "name": "mixer",
       "config": {
-         "mixer_server": "${MIXER_SERVER}",
          "mixer_attributes" : {
             "attribute_name1": "attribute_value1",
             "attribute_name2": "attribute_value2"
@@ -72,8 +101,6 @@ This filter will intercept all HTTP requests and call Mixer. Here is its config:
          },
          "quota_name": "RequestCount",
          "quota_amount": "1",
-         "quota_cache": "on",
-         "check_cache_expiration_in_seconds": "600",
          "check_cache_keys": [
               "request.host",
               "request.path",
@@ -83,7 +110,6 @@ This filter will intercept all HTTP requests and call Mixer. Here is its config:
 ```
 
 Notes:
-* mixer_server is required
 * mixer_attributes: these attributes will be sent to the mixer in both Check and Report calls.
 * forward_attributes: these attributes will be forwarded to the upstream istio/proxy. It will send them to mixer in Check and Report calls.
 * quota_name, quota_amount are used for making quota call. quota_amount defaults to 1.
@@ -115,13 +141,10 @@ Quota (rate limiting) is enforced by the mixer. Mixer needs to be configured wit
 
 Mixer client can be configured to make Quota call for all requests.  If "quota_name" is specified in the mixer filter config, mixer client will call Quota with the specified quota name.  If "quota_amount" is specified, it will call with that amount, otherwise the used amount is 1.
 
-The [quota prefetch](http://https://github.com/istio/mixerclient/blob/master/prefetch/README.md) is deployed in the mixer client. By default, it is off. It can be enabled by adding "quota_cache" as "on" in the mixer filter config.
-
 Following config will enable rate limiting with cache:
 
 ```
          "quota_name": "RequestCount",
-         "quota_cache": "on",
 
 ```
 
@@ -133,12 +156,10 @@ Usually client proxy is not configured to call mixer (it can be enabled in the r
 
 ## How to enable cache for Check calls
 
-Check calls can be cached. By default, it is not enabled. It can be enabled by supplying non-empty "check_cache_keys" string list in the mixer filter config. Only these attributes in the Check request, their keys and values, are used to calculate the key for the cache lookup. If it is a cache hit, the cached response will be used.
-The cached response will be expired in 5 minutes by default. It can be overrided by supplying "check_cache_expiration_in_seconds" in the mixer filter config. The Check response from the mixer has an expiration field. If it is filled, it will be used. By design, the mixer will control the cache expiration time.
+Check calls can be cached. By default, it is not enabled. It can be enabled by supplying non-empty "check_cache_keys" string list in the mixer filter config. Only these attributes in the Check request, their keys and values, are used to calculate the key for the cache lookup. If it is a cache hit, the cached response will be used. The mixer will control the cache expiration.
 
 Following is a sample mixer filter config to enable the Check call cache:
 ```
-         "check_cache_expiration_in_seconds": "600",
          "check_cache_keys": [
               "request.host",
               "request.path",
@@ -152,6 +173,10 @@ For the string map attributes in the above example:
 1) "request.headers" attribute is a string map, "request.headers/:method" cache key means only its ":method" key and value are used for cache key.
 2) "source.labels" attribute is a string map, "source.labels" cache key means all key value pairs for the string map will be used.
 
+## How to enable cache for Quota calls
+
+Quota cache is tied to Check cache. It is enabled automatically if Check cache is enabled (it is using quota name as cache key).
+
 ## How to change network failure policy
 
 When there is any network problems between the proxy and the mixer server, what should the proxy do for its Check calls?  There are two policy: fail open or fail close.  By default, it is using fail open policy.  It can be changed by adding this mixer filter config "network_fail_policy". Its value can be "open" or "close".  For example, following config will change the policy to fail close.
@@ -160,4 +185,28 @@ When there is any network problems between the proxy and the mixer server, what 
          "network_fail_policy": "close",
 
 ```
+
+## How to configurate TCP Mixer filters
+
+Here is its sample config:
+
+```
+   "filters": [
+        {
+          "type": "both",
+          "name": "mixer",
+          "config": {
+              "mixer_attributes": {
+                  "target.uid": "POD222",
+                  "target.service": "foo.svc.cluster.local"
+               },
+               "quota_name": "RequestCount"
+          }
+        }
+    ]
+```
+
+This filter will intercept a tcp connection:
+* Call Check at connection creation and call Report at connection close.
+* All mixer settings described above can be used here.
 

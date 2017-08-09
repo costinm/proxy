@@ -25,16 +25,16 @@ import (
 	"google.golang.org/grpc"
 
 	mixerpb "istio.io/api/mixer/v1"
+	"istio.io/mixer/pkg/adapterManager"
 	"istio.io/mixer/pkg/api"
+	"istio.io/mixer/pkg/aspect"
 	"istio.io/mixer/pkg/attribute"
 	"istio.io/mixer/pkg/pool"
-	"istio.io/mixer/pkg/tracing"
 )
 
 type Handler struct {
 	stress   bool
-	bag      *attribute.MutableBag
-	ch       chan int
+	ch       chan *attribute.MutableBag
 	count    int
 	r_status rpc.Status
 }
@@ -42,60 +42,75 @@ type Handler struct {
 func newHandler(stress bool) *Handler {
 	h := &Handler{
 		stress:   stress,
-		bag:      nil,
 		count:    0,
 		r_status: rpc.Status{},
 	}
 	if !stress {
-		h.ch = make(chan int, 10) // Allow maximum 10 requests
+		h.ch = make(chan *attribute.MutableBag, 100) // Allow maximum 100 requests
 	}
 	return h
 }
 
 func (h *Handler) run(bag *attribute.MutableBag) rpc.Status {
 	if !h.stress {
-		h.bag = attribute.CopyBag(bag)
-		h.ch <- 1
+		h.ch <- attribute.CopyBag(bag)
 	}
 	h.count++
 	return h.r_status
 }
 
 type MixerServer struct {
+	adapterManager.AspectDispatcher
+
 	lis net.Listener
 	gs  *grpc.Server
 	gp  *pool.GoroutinePool
 	s   mixerpb.MixerServer
 
-	check         *Handler
-	report        *Handler
-	quota         *Handler
-	quota_request *mixerpb.QuotaRequest
+	check  *Handler
+	report *Handler
+	quota  *Handler
+
+	qma          *aspect.QuotaMethodArgs
+	quota_amount int64
+	quota_limit  int64
+}
+
+func (ts *MixerServer) Preprocess(ctx context.Context, bag, output *attribute.MutableBag) rpc.Status {
+	return rpc.Status{Code: int32(rpc.OK)}
 }
 
 func (ts *MixerServer) Check(ctx context.Context, bag *attribute.MutableBag,
-	request *mixerpb.CheckRequest, response *mixerpb.CheckResponse) {
-	response.RequestIndex = request.RequestIndex
-	response.Result = ts.check.run(bag)
+	output *attribute.MutableBag) rpc.Status {
+	return ts.check.run(bag)
 }
 
-func (ts *MixerServer) Report(ctx context.Context, bag *attribute.MutableBag,
-	request *mixerpb.ReportRequest, response *mixerpb.ReportResponse) {
-	response.RequestIndex = request.RequestIndex
-	response.Result = ts.report.run(bag)
+func (ts *MixerServer) Report(ctx context.Context, bag *attribute.MutableBag) rpc.Status {
+	return ts.report.run(bag)
 }
 
 func (ts *MixerServer) Quota(ctx context.Context, bag *attribute.MutableBag,
-	request *mixerpb.QuotaRequest, response *mixerpb.QuotaResponse) {
-	response.RequestIndex = request.RequestIndex
-	ts.quota_request = request
-	response.Result = ts.quota.run(bag)
-	if response.Result.Code != 0 {
-		response.Amount = 0
-	} else {
-		response.Amount = request.Amount
-		response.Expiration = time.Minute
+	qma *aspect.QuotaMethodArgs) (*aspect.QuotaMethodResp, rpc.Status) {
+	*ts.qma = *qma
+	status := ts.quota.run(bag)
+	qmr := &aspect.QuotaMethodResp{}
+	if status.Code == 0 {
+		if ts.quota_limit == 0 {
+			qmr.Amount = qma.Amount
+		} else {
+			if ts.quota_amount < ts.quota_limit {
+				delta := ts.quota_limit - ts.quota_amount
+				if delta > qma.Amount {
+					qmr.Amount = qma.Amount
+				} else {
+					qmr.Amount = delta
+				}
+			}
+			ts.quota_amount += qmr.Amount
+		}
+		qmr.Expiration = time.Minute
 	}
+	return qmr, status
 }
 
 func NewMixerServer(port uint16, stress bool) (*MixerServer, error) {
@@ -104,6 +119,7 @@ func NewMixerServer(port uint16, stress bool) (*MixerServer, error) {
 		check:  newHandler(stress),
 		report: newHandler(stress),
 		quota:  newHandler(stress),
+		qma:    &aspect.QuotaMethodArgs{},
 	}
 
 	var err error
@@ -121,7 +137,7 @@ func NewMixerServer(port uint16, stress bool) (*MixerServer, error) {
 	s.gp = pool.NewGoroutinePool(128, false)
 	s.gp.AddWorkers(32)
 
-	s.s = api.NewGRPCServer(s, tracing.DisabledTracer(), s.gp)
+	s.s = api.NewGRPCServer(s, s.gp)
 	mixerpb.RegisterMixerServer(s.gs, s.s)
 	return s, nil
 }
