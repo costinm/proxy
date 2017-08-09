@@ -134,6 +134,10 @@ class TcpInstance : public Network::Filter,
                                     : Network::FilterStatus::Continue;
   }
 
+  void onAboveWriteBufferHighWatermark() {}
+
+  void onBelowWriteBufferLowWatermark() {}
+
   void completeCheck(const Status& status) {
     log().debug("Called TcpInstance completeCheck: {}", status.ToString());
     if (state_ == State::Closed) {
@@ -154,7 +158,7 @@ class TcpInstance : public Network::Filter,
   }
 
   // Network::ConnectionCallbacks
-  void onEvent(Network::ConnectionEvent event) override {
+  void onEvent(Network::ConnectionEvent events) override {
     if (filter_callbacks_->upstreamHost()) {
       log().debug("Called TcpInstance onEvent: {} upstream {}",
                   enumToInt(event),
@@ -163,8 +167,8 @@ class TcpInstance : public Network::Filter,
       log().debug("Called TcpInstance onEvent: {}", enumToInt(event));
     }
 
-    if (event == Network::ConnectionEvent::RemoteClose ||
-        event == Network::ConnectionEvent::LocalClose) {
+    if (events == Network::ConnectionEvent::RemoteClose ||
+        events == Network::ConnectionEvent::LocalClose) {
       if (state_ != State::Closed && request_data_) {
         mixer_control_->ReportTcp(request_data_, request_bytes_,
                                   response_bytes_, check_status_code_,

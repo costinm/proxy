@@ -188,7 +188,7 @@ class Instance : public Http::StreamDecoderFilter,
 
     if (!config_->forward_attributes().empty() && !forward_disabled()) {
       headers.addReference(Utils::kIstioAttributeHeader,
-                           config_->forward_attributes());
+                        config_->forward_attributes());
     }
 
     mixer_disabled_ = mixer_disabled();
@@ -263,8 +263,8 @@ class Instance : public Http::StreamDecoderFilter,
     if (!status.ok() && state_ != Responded) {
       state_ = Responded;
       check_status_code_ = HttpCode(status.error_code());
-      Utility::sendLocalReply(*decoder_callbacks_, false,
-                              Code(check_status_code_), status.ToString());
+      Utility::sendLocalReply(*decoder_callbacks_, false,  Code(check_status_code_),
+                              status.ToString());
       return;
     }
 

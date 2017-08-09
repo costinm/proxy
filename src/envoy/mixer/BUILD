@@ -62,6 +62,7 @@ envoy_cc_library(
         ":string_map_proto",
         ":uuid",
         "//external:mixer_client_lib",
+        "@envoy//include/envoy/grpc:rpc_channel_interface",
         "@envoy//source/common/grpc:rpc_channel_lib",
         "@envoy//source/exe:envoy_common_lib",
     ],
@@ -69,7 +70,11 @@ envoy_cc_library(
 
 envoy_cc_binary(
     name = "envoy",
-    repository = "@envoy",
+    linkopts = [
+        "-lrt",
+        "-luuid",
+    ],
+    linkstatic = 1,
     visibility = ["//visibility:public"],
     deps = [
         ":filter_lib",
