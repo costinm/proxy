@@ -1,6 +1,9 @@
+clone:
+  git: 
+     image: plugins/git
 pipeline:
   build:
-    image: grc.io/istio-testing/istio-builder:latest
+    image: gcr.io/istio-testing/istio-builder:latest
     commands:
       - make artifacts 
 
