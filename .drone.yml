@@ -5,6 +5,10 @@ pipeline:
   build:
     image: gcr.io/istio-testing/istio-builder:latest
     commands:
-      - make artifacts 
+      - make build
+  test:
+    image: gcr.io/istio-testing/istio-builder:latest
+    commands:
+      - make test 
 
 
