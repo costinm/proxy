@@ -45,19 +45,27 @@ pkg_deb(
     name = "istio-proxy",
     architecture = "amd64",
     built_using = "bazel",
+    conffiles = [
+        "/var/lib/istio/envoy/sidecar.env",
+        "/var/lib/istio/envoy/cluster.env",
+    ],
     data = ":debian-data",
     description_file = "description",
     homepage = "http://istio.io",
     maintainer = "The Istio Authors <istio-dev@googlegroups.com>",
     package = "istio-proxy",
     postinst = "postinst.sh",
-    version = "0.2-dev",
+    version = "0.3-dev",
 )
 
 pkg_deb(
     name = "istio-proxy-release",
     architecture = "amd64",
     built_using = "bazel",
+    conffiles = [
+        "/var/lib/istio/envoy/sidecar.env",
+        "/var/lib/istio/envoy/cluster.env",
+    ],
     data = ":debian-data",
     description_file = "description",
     homepage = "http://istio.io",

@@ -7,7 +7,6 @@ jobs:
       - image: gcr.io/istio-testing/istio-builder:latest
     steps:
       - checkout
-      - run: pilot/bin/install-bazel.sh
       - run: curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/v1.7.4/bin/linux/amd64/kubectl && chmod +x kubectl && sudo mv kubectl /usr/local/bin/
       - run: curl -Lo minikube https://storage.googleapis.com/minikube/releases/v0.22.3/minikube-linux-amd64 && chmod +x minikube && sudo mv minikube /usr/local/bin/
       - run:
@@ -21,13 +20,19 @@ jobs:
       - restore_cache:
           keys:
             - bazel-cache-{{ checksum "WORKSPACE" }}
+      - restore_cache:
+          keys:
+            - repo-cache-{{ checksum "WORKSPACE" }}
       - run: make build
+      - run: make test
+      - save_cache:
+          key: repo-cache-{{ checksum "WORKSPACE" }}
+          paths:
+            - /home/circleci/.repo      
       - save_cache:
           key: bazel-cache-{{ checksum "WORKSPACE" }}
           paths:
-            - /home/circleci/.cache/bazel      
-      - run: make docker HUB=docker.io/rshriram TAG=test  # make docker images for everything
-      - run: cd pilot; mkdir /home/circleci/logs; make e2etest HUB=docker.io/rshriram TAG=test TESTOPTS="-mixer=false -errorlogsdir=/home/circleci/logs"
+            - /home/circleci/src/proxy/.cache/bazel
       - store_artifacts:
           path: /home/circleci/logs
 
