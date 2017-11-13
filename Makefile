@@ -26,12 +26,18 @@ TAG ?=
 build:
 	@bazel $(BAZEL_STARTUP_ARGS) build $(BAZEL_BUILD_ARGS) //...
 
+# Build only envoy - fast
+build_envoy:
+	@bazel $(BAZEL_STARTUP_ARGS) build $(BAZEL_BUILD_ARGS) //src/envoy/mixer:envoy
+
 clean:
 	@bazel clean
 
 test:
 	@bazel $(BAZEL_STARTUP_ARGS) test $(BAZEL_TEST_ARGS) //...
 
+test_envoy:
+	@bazel $(BAZEL_STARTUP_ARGS) test $(BAZEL_TEST_ARGS) //src/envoy/mixer/...
 
 check:
 	@script/check-license-headers

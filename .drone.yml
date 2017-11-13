@@ -5,10 +5,10 @@ pipeline:
   build:
     image: gcr.io/istio-testing/istio-builder:latest
     commands:
-      - make build
+      - make build_envoy
   test:
     image: gcr.io/istio-testing/istio-builder:latest
     commands:
-      - make test 
+      - make test_envoy
 
 
