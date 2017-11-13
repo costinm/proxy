@@ -1,7 +1,7 @@
 version: 2
 
 jobs:
-  proxy:
+  build:
     working_directory: ~/src/proxy
     docker:
       - image: gcr.io/istio-testing/istio-builder:latest
@@ -41,4 +41,4 @@ workflows:
   version: 2
   all:
     jobs:
-      - proxy
+      - build
