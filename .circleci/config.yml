@@ -10,8 +10,8 @@ jobs:
       - HOME: /workspace
       - ROOT_SETUP: /bin/true
     docker:
-      #- image: gcr.io/istio-testing/istio-builder:0.4.5-bazel7-go19
-      - image: gcr.io/istio-testing/istio-builder:latest
+      - image: gcr.io/istio-testing/istio-builder:0.4.5-bazel7-go19
+      #- image: gcr.io/istio-testing/istio-builder:latest
     steps:
       - checkout
       - restore_cache:
@@ -22,8 +22,9 @@ jobs:
             - repo-cache-{{ checksum "WORKSPACE" }}
       # To build docker containers or run tests in a docker
       - setup_remote_docker
-      - run: (cd /workspace/istio/src/proxy; make build_envoy)
-      - run: (cd /workspace/istio/src/proxy; make test_envoy)
+      - run: (cd /workspace/istio/src; chown -R istio-builder *)
+      - run: (cd /workspace/istio/src/proxy; su -c "make build_envoy" istio-builder)
+      - run: (cd /workspace/istio/src/proxy; su -c "make test_envoy" istio-builder)
       - save_cache:
           key: repo-cache-{{ checksum "WORKSPACE" }}
           paths:
