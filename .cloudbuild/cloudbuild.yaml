@@ -1,20 +1,13 @@
 steps:
 
-- name: 'gcr.io/istio-testing/istio-builder:latest'
+- name: 'costinm/proxy-builder:0.4.4'
   args: ['make', 'artifacts_cached', "ISTIO_TAGS=git_latest"]
-#- name: 'gcr.io/istio-io/istio-builder:0.1'
-#  # TODO: create a 'repo' build step
-#  args: ['./script/build_repo.sh', 'sync']
-
 - name: gcr.io/cloud-builders/gsutil
   args: ['cp','/builder/home/bazel_cache.tgz', 'gs://$PROJECT_ID/proxy_cache']
 
 # Build other artifacts ( deb files )
 - name: 'gcr.io/cloud-builders/gsutil'
   args: ['cp', 'bazel-bin/tools/deb/istio-proxy.deb', 'gs://istio/istio-proxy-master.deb']
-
-- name: 'gcr.io/cloud-builders/gsutil'
-  args: ['cp', 'go/src/istio.io/pilot/bazel-bin/tools/deb/istio-agent.deb', 'gs://istio/istio-agent-master.deb']
 
 images:
 -  'gcr.io/$PROJECT_ID/proxy_debug'

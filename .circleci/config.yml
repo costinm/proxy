@@ -6,7 +6,6 @@ jobs:
     environment:
     docker:
       - image: costinm/proxy-builder:0.4.4
-      #- image: gcr.io/istio-testing/istio-builder:latest
     steps:
       - checkout
       - restore_cache:
@@ -28,7 +27,7 @@ jobs:
           paths:
             - /home/circleci/src/proxy/.cache/bazel
       - store_artifacts:
-          path: /home/circleci/logs
+          path: /home/circleci/bazel-bin/tools/deb
 
 
 
