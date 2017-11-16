@@ -21,13 +21,13 @@ jobs:
       - save_cache:
           key: repo-cache-{{ checksum "WORKSPACE" }}
           paths:
-            - /home/circleci/.repo      
+            - /home/circleci/.repo
       - save_cache:
           key: bazel-cache-{{ checksum "WORKSPACE" }}
           paths:
-            - /home/circleci/src/proxy/.cache/bazel
+            - /home/circleci/.cache/bazel
       - store_artifacts:
-          path: /home/circleci/bazel-bin/tools/deb
+          path: /home/circleci/project/bazel-bin/tools/deb
 
 
 
