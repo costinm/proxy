@@ -16,7 +16,7 @@ jobs:
             - repo-cache-{{ checksum "WORKSPACE" }}
       # To build docker containers or run tests in a docker
       - setup_remote_docker
-      - run: make build_envoy
+      - run: make deb
       - run: make test_envoy
       - save_cache:
           key: repo-cache-{{ checksum "WORKSPACE" }}

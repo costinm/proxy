@@ -1,9 +1,9 @@
 steps:
 
 - name: 'costinm/proxy-builder:0.4.4'
-  args: ['make', 'artifacts_cached', "ISTIO_TAGS=git_latest"]
+  args: ['make', 'deb']
 - name: gcr.io/cloud-builders/gsutil
-  args: ['cp','/builder/home/bazel_cache.tgz', 'gs://$PROJECT_ID/proxy_cache']
+  args: ['cp','/workspace/bazel_cache.tgz', 'gs://$PROJECT_ID/proxy_cache']
 
 # Build other artifacts ( deb files )
 - name: 'gcr.io/cloud-builders/gsutil'
