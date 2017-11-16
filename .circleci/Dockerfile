@@ -7,7 +7,7 @@ RUN \
 RUN \
     curl https://storage.googleapis.com/bazel-apt/doc/apt-key.pub.gpg | sudo apt-key add -
 
-RUN sudo apt-get update &&
+RUN sudo apt-get update && \
     sudo apt-get -y install bazel \
     wget software-properties-common make cmake python python-pip \
     bc libtool automake zip time g++ \
