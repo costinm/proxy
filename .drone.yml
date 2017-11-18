@@ -3,11 +3,11 @@ clone:
     image: plugins/git
 pipeline:
   build:
-    image: costinm/proxy-gcb-builder:0.4.4
+    image: costinm/proxy-builder:0.4.4
     commands:
       - make build_envoy
   test:
-    image: costinm/proxy-gcb-builder:0.4.4
+    image: costinm/proxy-builder:0.4.4
     commands:
       - make test_envoy
 

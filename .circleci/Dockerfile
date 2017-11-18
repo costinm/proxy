@@ -10,7 +10,7 @@ RUN \
 RUN sudo apt-get update && \
     sudo apt-get -y install bazel \
     wget software-properties-common make cmake python python-pip \
-    bc libtool automake zip time g++ \
+    bc libtool automake zip time g++-6 gcc-6 \
     rsync golang
 
 RUN bazel version
