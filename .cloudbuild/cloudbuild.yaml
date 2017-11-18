@@ -1,9 +1,7 @@
 steps:
 
-- name: 'costinm/proxy-gcb-builder:0.4.4'
-  args: ['/workspace/.cloudbuild/init.sh']
 - name: 'costinm/proxy-builder:0.4.4'
-  args: ['make', 'deb']
+  args: ['/workspace/.cloudbuild/init.sh']
 - name: gcr.io/cloud-builders/gsutil
   args: ['cp','/workspace/bazel_cache.tgz', 'gs://$PROJECT_ID/proxy_cache']
 
