@@ -28,7 +28,8 @@ build:
 
 # Build only envoy - fast
 build_envoy:
-	@bazel $(BAZEL_STARTUP_ARGS) build $(BAZEL_BUILD_ARGS) //src/envoy/mixer:envoy
+	id
+	bazel $(BAZEL_STARTUP_ARGS) build $(BAZEL_BUILD_ARGS) //src/envoy/mixer:envoy
 
 clean:
 	@bazel clean
@@ -43,10 +44,8 @@ check:
 	@script/check-license-headers
 	@script/check-style
 
-artifacts:
-	${TOP}/script/release-docker debug
+deb:
 	bazel build tools/deb:istio-proxy
-	@script/push-debian.sh -c opt -p $(ARTIFACTS_DIR)
 
 restore_cache:
 	${TOP}/script/cache.sh restore

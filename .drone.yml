@@ -1,14 +1,24 @@
 clone:
   git: 
-     image: plugins/git
+    image: plugins/git
 pipeline:
   build:
-    image: gcr.io/istio-testing/istio-builder:latest
+    image: costinm/proxy-builder:0.4.4
+    env:
+        HOME: /home/circleci
     commands:
-      - make build_envoy
+      - id
+      - env
+      - sudo chown -R circleci /drone/src
+      - HOME=/drone/src make build_envoy
   test:
-    image: gcr.io/istio-testing/istio-builder:latest
+    image: costinm/proxy-builder:0.4.4
+    env:
+        HOME: /home/circleci
     commands:
-      - make test_envoy
+      - id
+      - env
+      - sudo chown -R circleci /drone/src
+      - HOME=/drone/src make test_envoy
 
 

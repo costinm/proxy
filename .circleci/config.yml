@@ -2,16 +2,10 @@ version: 2
 
 jobs:
   build:
-    working_directory: /workspace/istio/src/proxy
+    #working_directory: src/proxy
     environment:
-      - USER: istio-builder
-      - UID: 1000
-      - GID: 1000
-      - HOME: /workspace
-      - ROOT_SETUP: /bin/true
     docker:
-      #- image: gcr.io/istio-testing/istio-builder:0.4.5-bazel7-go19
-      - image: gcr.io/istio-testing/istio-builder:latest
+      - image: costinm/proxy-builder:0.4.4
     steps:
       - checkout
       - restore_cache:
@@ -22,18 +16,20 @@ jobs:
             - repo-cache-{{ checksum "WORKSPACE" }}
       # To build docker containers or run tests in a docker
       - setup_remote_docker
-      - run: (cd /workspace/istio/src/proxy; make build_envoy)
-      - run: (cd /workspace/istio/src/proxy; make test_envoy)
+      - run: make deb
+      - run: make test_envoy
       - save_cache:
           key: repo-cache-{{ checksum "WORKSPACE" }}
           paths:
-            - /home/circleci/.repo      
+            - /home/circleci/.repo
       - save_cache:
           key: bazel-cache-{{ checksum "WORKSPACE" }}
           paths:
-            - /home/circleci/src/proxy/.cache/bazel
+            - /home/circleci/.cache/bazel
       - store_artifacts:
-          path: /home/circleci/logs
+          path: /home/circleci/project/bazel-bin/tools/deb
+
+
 
 
 workflows:
