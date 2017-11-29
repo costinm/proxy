@@ -65,10 +65,11 @@ void MixerConfig::Load(const Json::Object& json) {
 
   AttributesBuilder builder(http_config.mutable_mixer_attributes());
   if (json.hasObject(kQuotaName)) {
-    builder.AddString("quota.name", json.getString(kQuotaName));
-  }
-  if (json.hasObject(kQuotaAmount)) {
-    builder.AddInt64("quota.amount", std::stoi(json.getString(kQuotaAmount)));
+    int64_t amount = 1;
+    if (json.hasObject(kQuotaAmount)) {
+      amount = std::stoi(json.getString(kQuotaAmount));
+    }
+    legacy_quotas.push_back({json.getString(kQuotaName), amount});
   }
 
   // Copy mixer_attributes to TCP config.
@@ -101,8 +102,8 @@ void MixerConfig::CreateLegacyRouteConfig(
     bool disable_check, bool disable_report,
     const std::map<std::string, std::string>& attributes,
     ServiceConfig* config) {
-  config->set_enable_mixer_check(!disable_check);
-  config->set_enable_mixer_report(!disable_report);
+  config->set_disable_check_calls(disable_check);
+  config->set_disable_report_calls(disable_report);
 
   AttributesBuilder builder(config->mutable_mixer_attributes());
   for (const auto& it : attributes) {
