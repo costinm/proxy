@@ -19,6 +19,7 @@
 #include "common/http/utility.h"
 #include "control/include/utils/status.h"
 #include "envoy/registry/registry.h"
+#include "envoy/access_log/access_log.h"
 #include "envoy/ssl/connection.h"
 #include "envoy/thread_local/thread_local.h"
 #include "server/config/network/http_connection_manager.h"
@@ -248,7 +249,7 @@ class ReportData : public HttpReportData {
 };
 
 class Instance : public Http::StreamDecoderFilter,
-                 public Http::AccessLog::Instance,
+                 public AccessLog::Instance,
                  public Logger::Loggable<Logger::Id::http> {
  private:
   HttpMixerControl& mixer_control_;
@@ -448,7 +449,7 @@ class MixerConfigFactory : public NamedHttpFilterConfigFactory {
           callbacks.addStreamDecoderFilter(
               Http::StreamDecoderFilterSharedPtr(instance));
           callbacks.addAccessLogHandler(
-              Http::AccessLog::InstanceSharedPtr(instance));
+              AccessLog::InstanceSharedPtr(instance));
         };
   }
   std::string name() override { return "mixer"; }
