@@ -24,11 +24,8 @@ mixer_client_repositories()
 
 load(
     "@mixerclient_git//:repositories.bzl",
-    "googleapis_repositories",
     "mixerapi_repositories",
 )
-
-googleapis_repositories()
 
 mixerapi_repositories()
 
@@ -49,16 +46,6 @@ load("@envoy//bazel:repositories.bzl", "envoy_dependencies")
 
 envoy_dependencies(repository="@envoy", skip_targets=["io_bazel_rules_go"])
 
-bind(
-    name = "cc_wkt_protos",
-    actual = "@com_google_protobuf_cc//:cc_wkt_protos",
-)
-
-bind(
-    name = "cc_wkt_protos_genproto",
-    actual = "@com_google_protobuf_cc//:cc_wkt_protos_genproto",
-)
-
 load("@envoy//bazel:cc_configure.bzl", "cc_configure")
 
 cc_configure()
@@ -67,28 +54,22 @@ load("@envoy_api//bazel:repositories.bzl", "api_dependencies")
 
 api_dependencies()
 
-# Following go repositories are for building go integration test for mixer filter.
 git_repository(
     name = "io_bazel_rules_go",
     commit = "9cf23e2aab101f86e4f51d8c5e0f14c012c2161c",  # Oct 12, 2017 (Add `build_external` option to `go_repository`)
     remote = "https://github.com/bazelbuild/rules_go.git",
 )
 
-load("@io_bazel_rules_go//go:def.bzl", "go_rules_dependencies", "go_register_toolchains")
-go_rules_dependencies()
-go_register_toolchains()
+load("@mixerapi_git//:api_dependencies.bzl", "mixer_api_for_proxy_dependencies")
+mixer_api_for_proxy_dependencies()
 
-load("@io_bazel_rules_go//proto:def.bzl", "proto_register_toolchains")
-proto_register_toolchains()
-
-MIXER = "ba8ad5ca8ae77b946366e423d28b47cf3c8e1550"
+ISTIO_SHA = "bd88b62a633cbad0d5a33510c57571fb99cbb7ae"
 
 git_repository(
-    name = "com_github_istio_mixer",
-    commit = MIXER,
-    remote = "https://github.com/istio/mixer",
+    name = "io_istio_istio",
+    commit = ISTIO_SHA,
+    remote = "https://github.com/istio/istio",
 )
 
-load("@com_github_istio_mixer//test:repositories.bzl", "mixer_test_repositories")
-
+load("@io_istio_istio//mixer/test:repositories.bzl", "mixer_test_repositories")
 mixer_test_repositories()
