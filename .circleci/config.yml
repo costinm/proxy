@@ -17,6 +17,9 @@ jobs:
       # To build docker containers or run tests in a docker
       - setup_remote_docker
       - run: make deb BAZEL_BUILD_ARGS="-j 4"
+      - store_artifacts:
+          path: /home/circleci/project/bazel-bin/tools/deb/istio-proxy.deb
+          destination: /proxy/deb
       - run: make test_envoy
       - save_cache:
           key: repo-cache-{{ checksum "WORKSPACE" }}
@@ -26,9 +29,6 @@ jobs:
           key: bazel-cache-{{ checksum "WORKSPACE" }}
           paths:
             - /home/circleci/.cache/bazel
-      - store_artifacts:
-          path: /home/circleci/project/bazel-bin/tools/deb/istio-proxy.deb
-          destination: /proxy/deb
       - store_artifacts:
           path: /home/circleci/project/bazel-bin/src/envoy/mixer/envoy
           destination: /proxy/bin
